@@ -150,9 +150,9 @@ class notification_ctas implements renderable, templatable {
                 'internal' => false,
             ],
             'feedback' => [
-                'logo' => 'moodlelogo',
+                'logo' => 'moodlelogo_reversed',
                 'logoheight' => 28,
-                'logopill' => true,
+                'logopill' => false,
                 'title' => get_string('notificationctafeedbacktitle', 'admin'),
                 'body' => get_string('notificationctafeedbackbody', 'admin'),
                 'ticks' => [

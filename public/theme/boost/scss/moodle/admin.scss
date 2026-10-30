@@ -718,8 +718,8 @@
  *   tick         The check icons in the card body.
  */
 $notification-cta-brands: (
-    "marketplace": (band: #570d82, button: #570d82, button-hover: #32064c, tick: #570d82),
-    "moodlecloud": (band: #194866, button: #194866, button-hover: #102f42, tick: #194866),
+    "marketplace": (band: #32064c, button: #32064c, button-hover: #4a0a70, tick: #32064c),
+    "moodlecloud": (band: #282828, button: #282828, button-hover: #545454, tick: #282828),
     "partners":    (band: #fedfc1, button: #282828, button-hover: #545454, tick: #194866),
     "feedback":    (band: #f98012, button: #282828, button-hover: #545454, tick: shade-color(#f98012, 12%)),
 ) !default;
@@ -829,11 +829,12 @@ $notification-cta-brands: (
 
             li {
                 display: flex;
-                align-items: center;
+                align-items: baseline;
                 gap: var(--mds-spacing-xxs, .25rem);
             }
 
             .admin-notification-cta-tick {
+                flex-shrink: 0;
                 color: var(--cta-tick);
             }
         }
