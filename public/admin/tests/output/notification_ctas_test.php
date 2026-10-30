@@ -167,8 +167,7 @@ final class notification_ctas_test extends \advanced_testcase {
     }
 
     /**
-     * Each card's logo size matches the reference design, and the Feedback card's orange
-     * logo sits inside a white "pill" so it stays legible against its orange band.
+     * Each card's logo size matches the reference design.
      */
     public function test_logo_sizing_and_pill_match_reference_design(): void {
         global $PAGE;
@@ -189,7 +188,7 @@ final class notification_ctas_test extends \advanced_testcase {
         $this->assertFalse($bykey['marketplace']->logopill);
         $this->assertFalse($bykey['moodlecloud']->logopill);
         $this->assertFalse($bykey['partners']->logopill);
-        $this->assertTrue($bykey['feedback']->logopill);
+        $this->assertFalse($bykey['feedback']->logopill);
     }
 
     /**
