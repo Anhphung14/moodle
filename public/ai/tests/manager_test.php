@@ -328,18 +328,44 @@ final class manager_test extends \advanced_testcase {
         // Create the provider instance.
         $manager = \core\di::get(\core_ai\manager::class);
         $config = ['data' => 'goeshere'];
-        $provider = $manager->create_provider_instance(
-                classname: '\aiprovider_openai\provider',
-                name: 'dummy',
-                config: $config,
+        $provider1 = $manager->create_provider_instance(
+            classname: '\aiprovider_openai\provider',
+            name: 'dummy 1',
+            enabled: true,
+            config: $config,
+        );
+        $provider2 = $manager->create_provider_instance(
+            classname: '\aiprovider_openai\provider',
+            name: 'dummy 2',
+            enabled: true,
+            config: $config,
+        );
+        $provider3 = $manager->create_provider_instance(
+            classname: '\aiprovider_openai\provider',
+            name: 'dummy 3',
+            enabled: true,
+            config: $config,
         );
 
         // Delete the provider instance.
-        $manager->delete_provider_instance($provider);
+        $manager->delete_provider_instance($provider2);
 
         // Check the record was deleted from the DB.
-        $record = $DB->record_exists('ai_providers', ['id' => $provider->id]);
+        $record = $DB->record_exists('ai_providers', ['id' => $provider2->id]);
         $this->assertFalse($record);
+
+        // Ensure the deleted provider's ID is removed from provider_order.
+        $this->assertSame(
+            "{$provider1->id},{$provider3->id}",
+            get_config('core_ai', 'provider_order')
+        );
+
+        // Verify reordering works seamlessly after deletion (MDL-90079).
+        $this->assertTrue($manager->change_provider_order($provider1->id, \core\plugininfo\aiprovider::MOVE_DOWN));
+        $this->assertSame(
+            "{$provider3->id},{$provider1->id}",
+            get_config('core_ai', 'provider_order')
+        );
     }
 
     /**
