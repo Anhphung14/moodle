@@ -29,6 +29,8 @@ require_once(__DIR__ . '/helpers.php');
  * @copyright 2017 Ryan Wyllie <ryan@moodle.com>
  * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+#[\PHPUnit\Framework\Attributes\CoversClass(\core_calendar\external\event_exporter_base::class)]
+#[\PHPUnit\Framework\Attributes\CoversClass(calendar_event_exporter::class)]
 final class calendar_event_exporter_test extends \advanced_testcase {
     /**
      * Data provider for the timestamp min limit test case to confirm
@@ -294,5 +296,81 @@ final class calendar_event_exporter_test extends \advanced_testcase {
         ]);
         $exportedcourse = $courseexporter->export($renderer);
         $this->assertEquals($exportedevent->course, $exportedcourse);
+    }
+
+    /**
+     * Data provider for {@see test_calendar_event_exporter_name_formatting}.
+     *
+     * @return array
+     */
+    public static function event_name_formatting_provider(): array {
+        return [
+            'Multilang content is filtered' => [
+                'name' => '<span class="multilang" lang="en">English title</span>' .
+                    '<span class="multilang" lang="fi">Kuvaus suomeksi</span>',
+                'expected' => 'English title',
+            ],
+            'Special characters are encoded once' => [
+                'name' => 'Really awesome event!  & < > " \'',
+                'expected' => 'Really awesome event!  &#38; &#60; &#62; &#34; &#39;',
+            ],
+            'HTML tags are stripped' => [
+                'name' => 'Test <b>bold</b> & demo',
+                'expected' => 'Test bold &#38; demo',
+            ],
+            'Multilang with ampersand' => [
+                'name' => '<span class="multilang" lang="en">Tom & Jerry</span>' .
+                    '<span class="multilang" lang="fi">Tom ja Jerry</span>',
+                'expected' => 'Tom &#38; Jerry',
+            ],
+        ];
+    }
+
+    /**
+     * Test that the event name is filtered (e.g. multilang) and encoded exactly once.
+     *
+     * @param string $name The raw event name.
+     * @param string $expected The expected exported event name.
+     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('event_name_formatting_provider')]
+    public function test_calendar_event_exporter_name_formatting(string $name, string $expected): void {
+        global $PAGE;
+
+        $this->resetAfterTest(true);
+        $this->setAdminUser();
+
+        // Enable multilang filter on content and headings.
+        filter_set_global_state('multilang', TEXTFILTER_ON);
+        filter_set_applies_to_strings('multilang', true);
+        \filter_manager::reset_caches();
+
+        \core_external\external_settings::get_instance()->set_filter(true);
+
+        $generator = $this->getDataGenerator();
+        $course = $generator->create_course();
+        $coursecontext = \context_course::instance($course->id);
+        $now = time();
+        $mapper = container::get_event_mapper();
+        $renderer = $PAGE->get_renderer('core_calendar');
+
+        $legacyevent = create_event([
+            'name' => $name,
+            'courseid' => $course->id,
+            'userid' => 1,
+            'eventtype' => 'course',
+            'timestart' => $now,
+        ]);
+        $event = $mapper->from_legacy_event_to_event($legacyevent);
+        $exporter = new calendar_event_exporter($event, [
+            'context' => $coursecontext,
+            'course' => $course,
+            'moduleinstance' => null,
+            'daylink' => new \moodle_url(''),
+            'type' => type_factory::get_calendar_instance(),
+            'today' => $now,
+        ]);
+
+        $exportedevent = $exporter->export($renderer);
+        $this->assertEquals($expected, $exportedevent->name);
     }
 }
