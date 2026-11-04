@@ -31,6 +31,7 @@ require_once($CFG->libdir.'/adminlib.php');
 #[\PHPUnit\Framework\Attributes\CoversFunction('db_should_replace')]
 #[\PHPUnit\Framework\Attributes\CoversFunction('admin_output_new_settings_by_page')]
 #[\PHPUnit\Framework\Attributes\CoversFunction('admin_apply_default_settings')]
+#[\PHPUnit\Framework\Attributes\CoversFunction('drop_plugin_tables')]
 final class adminlib_test extends \advanced_testcase {
 
     /**
@@ -201,5 +202,47 @@ final class adminlib_test extends \advanced_testcase {
         // Make sure there were enough repetitions.
         $saved = admin_apply_default_settings(null, false);
         $this->assertSame([], $saved);
+    }
+
+    /**
+     * Test that drop_plugin_tables only drops tables that match the plugin prefix exactly or with an underscore suffix.
+     *
+     * @covers \drop_plugin_tables
+     */
+    public function test_drop_plugin_tables(): void {
+        global $DB;
+
+        $this->resetAfterTest();
+        $dbman = $DB->get_manager();
+
+        // Create temporary test tables simulating orphan tables.
+        $tables = [
+            'test_plug' => new \xmldb_table('test_plug'),
+            'test_plug_data' => new \xmldb_table('test_plug_data'),
+            'test_plugin' => new \xmldb_table('test_plugin'),
+            'test_plugin_data' => new \xmldb_table('test_plugin_data'),
+        ];
+
+        foreach ($tables as $table) {
+            $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+            $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+            $dbman->create_table($table);
+            $this->assertTrue($dbman->table_exists($table));
+        }
+
+        // Call drop_plugin_tables for 'test_plug' with a non-existent XML file to trigger orphan deletion logic.
+        drop_plugin_tables('test_plug', '/nonexistent/path/install.xml', false);
+
+        // The exact match and tables prefixed with 'test_plug_' should be dropped.
+        $this->assertFalse($dbman->table_exists($tables['test_plug']));
+        $this->assertFalse($dbman->table_exists($tables['test_plug_data']));
+
+        // Tables belonging to another plugin sharing the same prefix characters must NOT be dropped.
+        $this->assertTrue($dbman->table_exists($tables['test_plugin']));
+        $this->assertTrue($dbman->table_exists($tables['test_plugin_data']));
+
+        // Clean up remaining tables.
+        $dbman->drop_table($tables['test_plugin']);
+        $dbman->drop_table($tables['test_plugin_data']);
     }
 }
