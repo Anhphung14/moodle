@@ -227,7 +227,7 @@ function uninstall_plugin($type, $name) {
     // delete the plugin tables
     $xmldbfilepath = $plugindirectory . '/db/install.xml';
     drop_plugin_tables($component, $xmldbfilepath, false);
-    if ($type === 'mod' or $type === 'block') {
+    if ($type === 'mod') {
         // non-frankenstyle table prefixes
         drop_plugin_tables($name, $xmldbfilepath, false);
     }
@@ -365,7 +365,7 @@ function drop_plugin_tables($name, $file, $feedback=true) {
             continue;
         }
 
-        if (strpos($table, $name) !== 0) {
+        if ($table !== $name && !str_starts_with($table, "{$name}_")) {
             continue;
         }
 
